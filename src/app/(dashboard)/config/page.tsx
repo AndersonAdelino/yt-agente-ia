@@ -8,6 +8,8 @@ interface Config {
   temperature: number;
   maxTokens: number;
   historyLimit: number;
+  enabled: boolean;
+  allowedPhones: string;
   evolutionUrl: string;
   evolutionApiKey: string;
   instanceId: string;
@@ -19,6 +21,8 @@ const DEFAULT: Config = {
   temperature: 0.7,
   maxTokens: 1024,
   historyLimit: 10,
+  enabled: true,
+  allowedPhones: "",
   evolutionUrl: "",
   evolutionApiKey: "",
   instanceId: "",
@@ -156,7 +160,7 @@ export default function ConfigPage() {
       });
   }, []);
 
-  function set(key: keyof Config, value: string | number) {
+  function set(key: keyof Config, value: string | number | boolean) {
     setConfig((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
   }
@@ -295,6 +299,70 @@ export default function ConfigPage() {
                 />
               </Field>
             </div>
+          </SectionCard>
+
+          {/* Controle */}
+          <SectionCard title="Controle do Agente" icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z" /><path d="M8 12h8M12 8v8" />
+            </svg>
+          }>
+            {/* Toggle ativo/inativo */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px" }}>
+              <div>
+                <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-1)" }}>
+                  Agente {config.enabled ? "ativo" : "pausado"}
+                </p>
+                <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "2px" }}>
+                  {config.enabled
+                    ? "Respondendo mensagens no WhatsApp"
+                    : "Recebendo mensagens mas sem responder"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => set("enabled", !config.enabled)}
+                style={{
+                  width: "48px",
+                  height: "26px",
+                  borderRadius: "13px",
+                  background: config.enabled ? "var(--accent)" : "var(--surface-3)",
+                  border: `1px solid ${config.enabled ? "var(--accent)" : "var(--border-2)"}`,
+                  cursor: "pointer",
+                  position: "relative",
+                  flexShrink: 0,
+                  transition: "background 0.2s, border-color 0.2s",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "3px",
+                    left: config.enabled ? "24px" : "3px",
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    background: "white",
+                    transition: "left 0.2s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* Filtro de número */}
+            <Field
+              label="Filtro de números (opcional)"
+              hint="Só responde esses números. Separe por vírgula. Vazio = responde todos."
+            >
+              <input
+                type="text"
+                value={config.allowedPhones}
+                onChange={(e) => set("allowedPhones", e.target.value)}
+                className="field-input"
+                placeholder="5511999990000, 5521988880000"
+              />
+            </Field>
           </SectionCard>
 
           {/* Evolution API */}

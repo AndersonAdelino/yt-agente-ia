@@ -11,6 +11,8 @@ await db.executeMultiple(`
     "temperature" REAL NOT NULL DEFAULT 0.7,
     "maxTokens" INTEGER NOT NULL DEFAULT 1024,
     "historyLimit" INTEGER NOT NULL DEFAULT 10,
+    "enabled" INTEGER NOT NULL DEFAULT 1,
+    "allowedPhones" TEXT NOT NULL DEFAULT '',
     "evolutionUrl" TEXT NOT NULL DEFAULT '',
     "evolutionApiKey" TEXT NOT NULL DEFAULT '',
     "instanceId" TEXT NOT NULL DEFAULT '',
@@ -37,12 +39,19 @@ await db.executeMultiple(`
   );
 `);
 
-// Adiciona coluna historyLimit se ainda não existir (migração incremental)
-try {
-  await db.execute(`ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`);
-  console.log("[migrate] Coluna historyLimit adicionada");
-} catch {
-  // Coluna já existe — ignorar
+// Migrações incrementais — ignorar se coluna já existe
+const incremental = [
+  `ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`,
+  `ALTER TABLE "AgentConfig" ADD COLUMN "enabled" INTEGER NOT NULL DEFAULT 1`,
+  `ALTER TABLE "AgentConfig" ADD COLUMN "allowedPhones" TEXT NOT NULL DEFAULT ''`,
+];
+
+for (const sql of incremental) {
+  try {
+    await db.execute(sql);
+  } catch {
+    // coluna já existe
+  }
 }
 
 console.log("[migrate] Tables OK");

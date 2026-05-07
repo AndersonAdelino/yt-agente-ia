@@ -30,6 +30,8 @@ export async function PUT(req: NextRequest) {
       temperature: parseFloat(body.temperature),
       maxTokens: parseInt(body.maxTokens),
       historyLimit: parseInt(body.historyLimit),
+      enabled: Boolean(body.enabled),
+      allowedPhones: body.allowedPhones ?? "",
       evolutionUrl: body.evolutionUrl,
       evolutionApiKey: body.evolutionApiKey,
       instanceId: body.instanceId,

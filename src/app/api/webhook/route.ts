@@ -3,16 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { generateResponse, ChatMessage } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
 
-// Evolution API (Node.js) webhook payload
 interface EvolutionWebhookPayload {
   event: string;
   instance?: string;
   data?: {
-    key?: {
-      remoteJid?: string;
-      fromMe?: boolean;
-      id?: string;
-    };
+    key?: { remoteJid?: string; fromMe?: boolean; id?: string };
     message?: {
       conversation?: string;
       extendedTextMessage?: { text: string };
@@ -24,9 +19,17 @@ interface EvolutionWebhookPayload {
 
 function extractPhone(remoteJid?: string): string {
   if (!remoteJid) return "";
-  // Ignora grupos (contém @g.us)
-  if (remoteJid.includes("@g.us")) return "";
+  if (remoteJid.includes("@g.us")) return ""; // ignora grupos
   return remoteJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+}
+
+function isPhoneAllowed(phone: string, allowedPhones: string): boolean {
+  const list = allowedPhones
+    .split(",")
+    .map((p) => p.trim().replace(/\D/g, ""))
+    .filter(Boolean);
+  if (list.length === 0) return true; // sem filtro = todos permitidos
+  return list.some((allowed) => phone.endsWith(allowed) || allowed.endsWith(phone));
 }
 
 export async function POST(req: NextRequest) {
@@ -55,6 +58,16 @@ export async function POST(req: NextRequest) {
     const config = await prisma.agentConfig.findFirst();
     if (!config || !config.evolutionUrl || !config.evolutionApiKey) {
       return NextResponse.json({ error: "Agente não configurado" }, { status: 400 });
+    }
+
+    // Agente desligado — ignora silenciosamente
+    if (!config.enabled) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Filtro de número — ignora se não estiver na lista
+    if (!isPhoneAllowed(phone, config.allowedPhones)) {
+      return NextResponse.json({ ok: true });
     }
 
     let conversation = await prisma.conversation.findFirst({
@@ -87,12 +100,7 @@ export async function POST(req: NextRequest) {
     );
 
     await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content,
-        tokens,
-      },
+      data: { conversationId: conversation.id, role: "assistant", content, tokens },
     });
 
     await sendWhatsAppMessage(
