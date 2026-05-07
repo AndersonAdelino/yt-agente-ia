@@ -1,3 +1,3 @@
 #!/bin/sh
-npx prisma migrate deploy
+node /app/migrate.mjs
 node server.js
