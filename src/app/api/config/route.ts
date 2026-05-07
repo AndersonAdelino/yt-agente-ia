@@ -36,6 +36,8 @@ export async function PUT(req: NextRequest) {
       evolutionApiKey: body.evolutionApiKey,
       instanceId: body.instanceId,
       aiProvider: body.aiProvider ?? "openai",
+      openaiApiKey: body.openaiApiKey ?? "",
+      openaiModel: body.openaiModel ?? "gpt-4.1-mini",
       groqApiKey: body.groqApiKey ?? "",
       groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
     },

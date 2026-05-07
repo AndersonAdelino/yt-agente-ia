@@ -7,6 +7,8 @@ export interface ChatMessage {
 
 interface ProviderOptions {
   aiProvider?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
   groqApiKey?: string;
   groqModel?: string;
 }
@@ -22,8 +24,10 @@ function buildClient(opts: ProviderOptions): { client: OpenAI; model: string } {
     };
   }
   return {
-    client: new OpenAI({ apiKey: process.env.OPENAI_API_KEY }),
-    model: "gpt-4.1-mini",
+    client: new OpenAI({
+      apiKey: opts.openaiApiKey || process.env.OPENAI_API_KEY,
+    }),
+    model: opts.openaiModel || "gpt-4.1-mini",
   };
 }
 

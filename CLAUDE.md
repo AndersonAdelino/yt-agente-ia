@@ -161,6 +161,8 @@ model AgentConfig {
   enabled         Boolean  @default(true)
   allowedPhones   String   @default("")
   aiProvider      String   @default("openai")
+  openaiApiKey    String   @default("")
+  openaiModel     String   @default("gpt-4.1-mini")
   groqApiKey      String   @default("")
   groqModel       String   @default("llama-3.3-70b-versatile")
   createdAt       DateTime @default(now())
@@ -253,6 +255,8 @@ const incremental = [
   `ALTER TABLE "AgentConfig" ADD COLUMN "enabled" INTEGER NOT NULL DEFAULT 1`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "allowedPhones" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "aiProvider" TEXT NOT NULL DEFAULT 'openai'`,
+  `ALTER TABLE "AgentConfig" ADD COLUMN "openaiApiKey" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "AgentConfig" ADD COLUMN "openaiModel" TEXT NOT NULL DEFAULT 'gpt-4.1-mini'`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "groqApiKey" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "groqModel" TEXT NOT NULL DEFAULT 'llama-3.3-70b-versatile'`,
 ];
@@ -357,7 +361,7 @@ export async function generateResponse(
 ```
 
 - Se `aiProvider === "groq"`: usa `baseURL: "https://api.groq.com/openai/v1"` com `groqApiKey`; modelo = `groqModel` (padrão `llama-3.3-70b-versatile`)
-- Senão: usa OpenAI com `OPENAI_API_KEY`; modelo = `gpt-4.1-mini`
+- Senão (openai): usa `openaiApiKey` do config; se vazio, usa `OPENAI_API_KEY` do env como fallback; modelo = `openaiModel` (padrão `gpt-4.1-mini`)
 - Groq é compatível com o SDK OpenAI — não precisa de dependência extra
 - Insere `systemPrompt` como primeira mensagem `system`. Retorna texto e `usage.total_tokens`.
 
@@ -466,8 +470,8 @@ Sidebar fixa com links para `/` (Chat de Teste), `/conversations` (Conversas Wha
 - `PUT /api/config` ao salvar; exibe feedback de sucesso ou erro
 - Campos: `name`, `systemPrompt` (textarea), `temperature`, `maxTokens`, `historyLimit`, `enabled` (toggle), `allowedPhones`, `evolutionUrl`, `evolutionApiKey`, `instanceId`
 - Seção "Provedor de IA": dois botões toggle — OpenAI / Groq (grátis)
-  - Se Groq: exibe campos `groqApiKey` e `groqModel` (select com 4 opções)
-  - Modelos Groq disponíveis: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `gemma2-9b-it`, `mixtral-8x7b-32768`
+  - Se OpenAI: exibe campos `openaiApiKey` e `openaiModel` (select com 4 opções: gpt-4.1-mini, gpt-4.1, gpt-4o, gpt-4o-mini)
+  - Se Groq: exibe campos `groqApiKey` e `groqModel` (select com 4 opções: llama-3.3-70b-versatile, llama-3.1-8b-instant, gemma2-9b-it, mixtral-8x7b-32768)
 - Seção "Webhook": exibe `window.location.origin + "/api/webhook"` com botão copiar
 
 ### app/(dashboard)/conversations/page.tsx — Conversas WhatsApp

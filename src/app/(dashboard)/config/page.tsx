@@ -14,6 +14,8 @@ interface Config {
   evolutionApiKey: string;
   instanceId: string;
   aiProvider: string;
+  openaiApiKey: string;
+  openaiModel: string;
   groqApiKey: string;
   groqModel: string;
 }
@@ -30,9 +32,18 @@ const DEFAULT: Config = {
   evolutionApiKey: "",
   instanceId: "",
   aiProvider: "openai",
+  openaiApiKey: "",
+  openaiModel: "gpt-4.1-mini",
   groqApiKey: "",
   groqModel: "llama-3.3-70b-versatile",
 };
+
+const OPENAI_MODELS = [
+  { value: "gpt-4.1-mini", label: "GPT-4.1 Mini (recomendado)" },
+  { value: "gpt-4.1", label: "GPT-4.1" },
+  { value: "gpt-4o", label: "GPT-4o" },
+  { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+];
 
 const GROQ_MODELS = [
   { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile" },
@@ -290,6 +301,31 @@ export default function ConfigPage() {
                 ))}
               </div>
             </Field>
+
+            {config.aiProvider === "openai" && (
+              <>
+                <Field label="OpenAI API Key" hint="Obtenha em platform.openai.com/api-keys">
+                  <input
+                    type="password"
+                    value={config.openaiApiKey}
+                    onChange={(e) => set("openaiApiKey", e.target.value)}
+                    className="field-input"
+                    placeholder="sk-..."
+                  />
+                </Field>
+                <Field label="Modelo OpenAI">
+                  <select
+                    value={config.openaiModel}
+                    onChange={(e) => set("openaiModel", e.target.value)}
+                    className="field-input"
+                  >
+                    {OPENAI_MODELS.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </Field>
+              </>
+            )}
 
             {config.aiProvider === "groq" && (
               <>

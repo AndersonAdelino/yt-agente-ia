@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     config.systemPrompt,
     config.temperature,
     config.maxTokens,
-    { aiProvider: config.aiProvider, groqApiKey: config.groqApiKey, groqModel: config.groqModel }
+    { aiProvider: config.aiProvider, openaiApiKey: config.openaiApiKey, openaiModel: config.openaiModel, groqApiKey: config.groqApiKey, groqModel: config.groqModel }
   );
 
   const assistantMsg = await prisma.message.create({

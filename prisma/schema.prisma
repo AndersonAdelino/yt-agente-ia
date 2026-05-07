@@ -19,6 +19,8 @@ model AgentConfig {
   enabled         Boolean  @default(true)
   allowedPhones   String   @default("")
   aiProvider      String   @default("openai")
+  openaiApiKey    String   @default("")
+  openaiModel     String   @default("gpt-4.1-mini")
   groqApiKey      String   @default("")
   groqModel       String   @default("llama-3.3-70b-versatile")
   createdAt       DateTime @default(now())
