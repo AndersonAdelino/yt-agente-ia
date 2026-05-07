@@ -35,6 +35,9 @@ export async function PUT(req: NextRequest) {
       evolutionUrl: body.evolutionUrl,
       evolutionApiKey: body.evolutionApiKey,
       instanceId: body.instanceId,
+      aiProvider: body.aiProvider ?? "openai",
+      groqApiKey: body.groqApiKey ?? "",
+      groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
     },
   });
   return NextResponse.json(updated);

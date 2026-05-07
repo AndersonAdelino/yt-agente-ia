@@ -1,24 +1,43 @@
 import OpenAI from "openai";
 
-export function getOpenAIClient() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-}
-
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
+}
+
+interface ProviderOptions {
+  aiProvider?: string;
+  groqApiKey?: string;
+  groqModel?: string;
+}
+
+function buildClient(opts: ProviderOptions): { client: OpenAI; model: string } {
+  if (opts.aiProvider === "groq") {
+    return {
+      client: new OpenAI({
+        apiKey: opts.groqApiKey ?? "",
+        baseURL: "https://api.groq.com/openai/v1",
+      }),
+      model: opts.groqModel ?? "llama-3.3-70b-versatile",
+    };
+  }
+  return {
+    client: new OpenAI({ apiKey: process.env.OPENAI_API_KEY }),
+    model: "gpt-4.1-mini",
+  };
 }
 
 export async function generateResponse(
   messages: ChatMessage[],
   systemPrompt: string,
   temperature: number,
-  maxTokens: number
+  maxTokens: number,
+  providerOpts: ProviderOptions = {}
 ): Promise<{ content: string; tokens: number }> {
-  const client = getOpenAIClient();
+  const { client, model } = buildClient(providerOpts);
 
   const response = await client.chat.completions.create({
-    model: "gpt-4.1-mini",
+    model,
     messages: [{ role: "system", content: systemPrompt }, ...messages],
     temperature,
     max_tokens: maxTokens,

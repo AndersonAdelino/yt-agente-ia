@@ -13,6 +13,9 @@ interface Config {
   evolutionUrl: string;
   evolutionApiKey: string;
   instanceId: string;
+  aiProvider: string;
+  groqApiKey: string;
+  groqModel: string;
 }
 
 const DEFAULT: Config = {
@@ -26,7 +29,17 @@ const DEFAULT: Config = {
   evolutionUrl: "",
   evolutionApiKey: "",
   instanceId: "",
+  aiProvider: "openai",
+  groqApiKey: "",
+  groqModel: "llama-3.3-70b-versatile",
 };
+
+const GROQ_MODELS = [
+  { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B Versatile" },
+  { value: "llama-3.1-8b-instant", label: "Llama 3.1 8B Instant (mais rápido)" },
+  { value: "gemma2-9b-it", label: "Gemma 2 9B" },
+  { value: "mixtral-8x7b-32768", label: "Mixtral 8x7B (contexto longo)" },
+];
 
 function SectionCard({
   title,
@@ -249,8 +262,63 @@ export default function ConfigPage() {
             </Field>
           </SectionCard>
 
+          {/* Provedor de IA */}
+          <SectionCard title="Provedor de IA" icon={<IconBrain />}>
+            <Field label="Provedor" hint="OpenAI é pago; Groq oferece plano gratuito.">
+              <div style={{ display: "flex", gap: "10px" }}>
+                {(["openai", "groq"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => set("aiProvider", p)}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "10px",
+                      border: `1.5px solid ${config.aiProvider === p ? "var(--accent)" : "var(--border)"}`,
+                      background: config.aiProvider === p ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "var(--surface-2)",
+                      color: config.aiProvider === p ? "var(--accent-text)" : "var(--text-2)",
+                      fontSize: "0.8125rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-display)",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {p === "openai" ? "OpenAI" : "Groq (grátis)"}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {config.aiProvider === "groq" && (
+              <>
+                <Field label="Groq API Key" hint="Obtenha em console.groq.com — plano gratuito disponível.">
+                  <input
+                    type="password"
+                    value={config.groqApiKey}
+                    onChange={(e) => set("groqApiKey", e.target.value)}
+                    className="field-input"
+                    placeholder="gsk_..."
+                  />
+                </Field>
+                <Field label="Modelo Groq">
+                  <select
+                    value={config.groqModel}
+                    onChange={(e) => set("groqModel", e.target.value)}
+                    className="field-input"
+                  >
+                    {GROQ_MODELS.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </Field>
+              </>
+            )}
+          </SectionCard>
+
           {/* Modelo */}
-          <SectionCard title="Parâmetros do Modelo (GPT-4.1-mini)" icon={<IconBrain />}>
+          <SectionCard title="Parâmetros do Modelo" icon={<IconBrain />}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <Field label="Temperatura" hint={`Criatividade: ${config.temperature}`}>
                 <input

@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
       history,
       config.systemPrompt,
       config.temperature,
-      config.maxTokens
+      config.maxTokens,
+      { aiProvider: config.aiProvider, groqApiKey: config.groqApiKey, groqModel: config.groqModel }
     );
 
     await prisma.message.create({
