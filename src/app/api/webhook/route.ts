@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     let conversation = await prisma.conversation.findFirst({
       where: { source: "whatsapp", phone },
-      include: { messages: { orderBy: { createdAt: "asc" }, take: 20 } },
+      include: { messages: { orderBy: { createdAt: "asc" }, take: config.historyLimit * 2 } },
     });
 
     if (!conversation) {

@@ -7,6 +7,7 @@ interface Config {
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
+  historyLimit: number;
   evolutionUrl: string;
   evolutionApiKey: string;
   instanceId: string;
@@ -17,6 +18,7 @@ const DEFAULT: Config = {
   systemPrompt: "Você é um assistente prestativo e amigável.",
   temperature: 0.7,
   maxTokens: 1024,
+  historyLimit: 10,
   evolutionUrl: "",
   evolutionApiKey: "",
   instanceId: "",
@@ -150,6 +152,16 @@ export default function ConfigPage() {
                   onChange={(e) => set("maxTokens", parseInt(e.target.value))}
                   min={64}
                   max={4096}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Limite de histórico" hint="Pares de mensagens enviados como contexto para a IA">
+                <input
+                  type="number"
+                  value={config.historyLimit}
+                  onChange={(e) => set("historyLimit", parseInt(e.target.value))}
+                  min={1}
+                  max={50}
                   className={inputCls}
                 />
               </Field>

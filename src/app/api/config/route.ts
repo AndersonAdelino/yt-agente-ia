@@ -29,6 +29,7 @@ export async function PUT(req: NextRequest) {
       systemPrompt: body.systemPrompt,
       temperature: parseFloat(body.temperature),
       maxTokens: parseInt(body.maxTokens),
+      historyLimit: parseInt(body.historyLimit),
       evolutionUrl: body.evolutionUrl,
       evolutionApiKey: body.evolutionApiKey,
       instanceId: body.instanceId,

@@ -1,7 +1,6 @@
 import { createClient } from "@libsql/client";
 
 const url = process.env.DATABASE_URL ?? "file:/app/data/prod.db";
-
 const db = createClient({ url });
 
 await db.executeMultiple(`
@@ -11,6 +10,7 @@ await db.executeMultiple(`
     "systemPrompt" TEXT NOT NULL DEFAULT 'Voce e um assistente prestativo e amigavel.',
     "temperature" REAL NOT NULL DEFAULT 0.7,
     "maxTokens" INTEGER NOT NULL DEFAULT 1024,
+    "historyLimit" INTEGER NOT NULL DEFAULT 10,
     "evolutionUrl" TEXT NOT NULL DEFAULT '',
     "evolutionApiKey" TEXT NOT NULL DEFAULT '',
     "instanceId" TEXT NOT NULL DEFAULT '',
@@ -36,6 +36,14 @@ await db.executeMultiple(`
     FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE CASCADE
   );
 `);
+
+// Adiciona coluna historyLimit se ainda não existir (migração incremental)
+try {
+  await db.execute(`ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`);
+  console.log("[migrate] Coluna historyLimit adicionada");
+} catch {
+  // Coluna já existe — ignorar
+}
 
 console.log("[migrate] Tables OK");
 db.close();

@@ -21,7 +21,12 @@ export async function POST(req: NextRequest) {
   let conversation = conversationId
     ? await prisma.conversation.findUnique({
         where: { id: conversationId },
-        include: { messages: { orderBy: { createdAt: "asc" } } },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            take: config.historyLimit * 2, // par usuário+assistente
+          },
+        },
       })
     : null;
 
@@ -33,11 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      role: "user",
-      content: message,
-    },
+    data: { conversationId: conversation.id, role: "user", content: message },
   });
 
   const history: ChatMessage[] = conversation.messages.map((m) => ({
@@ -54,12 +55,7 @@ export async function POST(req: NextRequest) {
   );
 
   const assistantMsg = await prisma.message.create({
-    data: {
-      conversationId: conversation.id,
-      role: "assistant",
-      content,
-      tokens,
-    },
+    data: { conversationId: conversation.id, role: "assistant", content, tokens },
   });
 
   return NextResponse.json({

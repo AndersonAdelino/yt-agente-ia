@@ -15,6 +15,7 @@ model AgentConfig {
   evolutionUrl    String   @default("")
   evolutionApiKey String   @default("")
   instanceId      String   @default("")
+  historyLimit    Int      @default(10)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

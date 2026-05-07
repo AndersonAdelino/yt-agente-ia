@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface Message {
   id: string;
@@ -8,6 +8,8 @@ interface Message {
   content: string;
   tokens?: number;
 }
+
+const STORAGE_KEY = "chat_conversation_id";
 
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
@@ -61,9 +63,42 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Carrega histórico da última conversa ao abrir
+  const loadHistory = useCallback(async (convId: string) => {
+    const res = await fetch(`/api/chat?conversationId=${convId}`);
+    if (!res.ok) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    const data = await res.json();
+    if (data?.messages?.length) {
+      setMessages(
+        data.messages.map((m: { id: string; role: string; content: string; tokens?: number }) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          tokens: m.tokens,
+        }))
+      );
+      setConversationId(convId);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      loadHistory(saved).finally(() => setLoadingHistory(false));
+    } else {
+      setLoadingHistory(false);
+    }
+  }, [loadHistory]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,17 +108,14 @@ export default function ChatPage() {
     setMessages([]);
     setConversationId(null);
     setInput("");
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   async function sendMessage() {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-    };
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -99,26 +131,20 @@ export default function ChatPage() {
         const err = await res.json();
         setMessages((prev) => [
           ...prev,
-          {
-            id: Date.now().toString() + "-err",
-            role: "assistant",
-            content: `Erro: ${err.error ?? "Falha ao obter resposta"}`,
-          },
+          { id: Date.now().toString() + "-err", role: "assistant", content: `Erro: ${err.error ?? "Falha ao obter resposta"}` },
         ]);
         return;
       }
 
       const data = await res.json();
-      setConversationId(data.conversationId);
+      const newConvId = data.conversationId;
+      setConversationId(newConvId);
+      localStorage.setItem(STORAGE_KEY, newConvId);
       setMessages((prev) => [...prev, { ...data.message, role: "assistant" }]);
     } catch {
       setMessages((prev) => [
         ...prev,
-        {
-          id: Date.now().toString() + "-err",
-          role: "assistant",
-          content: "Erro de conexão. Verifique se o servidor está rodando.",
-        },
+        { id: Date.now().toString() + "-err", role: "assistant", content: "Erro de conexão." },
       ]);
     } finally {
       setLoading(false);
@@ -140,40 +166,41 @@ export default function ChatPage() {
         <div>
           <h1 className="text-base font-semibold text-zinc-100">Chat de Teste</h1>
           <p className="text-xs text-zinc-500 mt-0.5">
-            Teste o agente sem precisar do WhatsApp
+            {conversationId
+              ? "Conversa salva — histórico preservado entre sessões"
+              : "Teste o agente sem precisar do WhatsApp"}
           </p>
         </div>
         {messages.length > 0 && (
           <button
             onClick={resetChat}
-            className="text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-colors"
+            className="text-xs text-zinc-500 hover:text-red-400 bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-colors"
           >
-            Nova conversa
+            Limpar memória
           </button>
         )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && (
+        {loadingHistory ? (
+          <div className="h-full flex items-center justify-center text-zinc-600 text-sm">
+            Carregando histórico...
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl mb-4">
               🤖
             </div>
             <p className="text-zinc-300 font-medium mb-1">Agente pronto para conversa</p>
             <p className="text-sm text-zinc-500 max-w-xs">
-              Envie uma mensagem para testar o agente. Configure as instruções em{" "}
-              <a href="/config" className="text-emerald-400 hover:underline">
-                Configurações
-              </a>
-              .
+              Envie uma mensagem para testar. O histórico fica salvo até você clicar em{" "}
+              <span className="text-red-400">Limpar memória</span>.
             </p>
           </div>
+        ) : (
+          messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)
         )}
-
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} />
-        ))}
 
         {loading && <TypingIndicator />}
         <div ref={bottomRef} />
@@ -197,18 +224,8 @@ export default function ChatPage() {
             disabled={!input.trim() || loading}
             className="flex-shrink-0 w-11 h-11 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors"
           >
-            <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </div>
