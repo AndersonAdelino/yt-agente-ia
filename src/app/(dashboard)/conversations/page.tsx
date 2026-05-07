@@ -26,18 +26,17 @@ export default function ConversationsPage() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
   useEffect(() => {
-    fetch("/api/chat")
+    fetch("/api/conversations")
       .then((r) => r.json())
       .then((d) => {
-        const all = Array.isArray(d) ? d : [];
-        setConversations(all.filter((c: Conversation) => c.source === "whatsapp"));
+        setConversations(Array.isArray(d) ? d : []);
         setLoadingConv(false);
       });
   }, []);
 
   async function loadConversation(conv: Conversation) {
     setLoadingMsgs(true);
-    const r = await fetch(`/api/chat?conversationId=${conv.id}`);
+    const r = await fetch(`/api/conversations?conversationId=${conv.id}`);
     const data = await r.json();
     setSelected(data);
     setLoadingMsgs(false);
@@ -59,7 +58,7 @@ export default function ConversationsPage() {
             <div className="px-4 py-6 text-center">
               <p className="text-sm text-zinc-500">Nenhuma conversa ainda</p>
               <p className="text-xs text-zinc-600 mt-1">
-                Configure o webhook do Evolution Go para receber mensagens
+                Configure o webhook da Evolution API para receber mensagens
               </p>
             </div>
           ) : (
