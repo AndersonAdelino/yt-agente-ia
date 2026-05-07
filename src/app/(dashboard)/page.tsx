@@ -11,30 +11,84 @@ interface Message {
 
 const STORAGE_KEY = "chat_conversation_id";
 
+function IconSend() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
 function MessageBubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[78%] ${isUser ? "order-last" : ""}`}>
+    <div
+      className="animate-fade-up"
+      style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}
+    >
+      <div style={{ maxWidth: "76%", display: "flex", flexDirection: "column", gap: "4px" }}>
         {!isUser && (
-          <div className="flex items-center gap-1.5 mb-1 ml-1">
-            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-xs">
-              🤖
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "4px" }}>
+            <div
+              style={{
+                width: "18px",
+                height: "18px",
+                borderRadius: "50%",
+                background: "var(--ai-dim)",
+                border: "1px solid var(--ai-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--ai)" stroke="none">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
             </div>
-            <span className="text-xs text-zinc-500">Agente</span>
+            <span style={{ fontSize: "0.6875rem", color: "var(--text-3)", fontWeight: 500 }}>
+              Agente
+            </span>
           </div>
         )}
         <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isUser
-              ? "bg-emerald-500 text-white rounded-tr-sm"
-              : "bg-zinc-800 text-zinc-100 rounded-tl-sm"
-          }`}
+          style={{
+            padding: "10px 14px",
+            borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+            fontSize: "0.875rem",
+            lineHeight: 1.6,
+            background: isUser
+              ? "var(--accent)"
+              : "var(--surface-2)",
+            color: isUser ? "#000" : "var(--text-1)",
+            border: isUser ? "none" : "1px solid var(--border)",
+            fontWeight: isUser ? 500 : 400,
+          }}
         >
-          <p className="whitespace-pre-wrap">{msg.content}</p>
+          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{msg.content}</p>
         </div>
         {msg.tokens && (
-          <p className="text-[11px] text-zinc-600 mt-1 ml-1">{msg.tokens} tokens</p>
+          <p
+            style={{
+              fontSize: "0.6875rem",
+              color: "var(--text-3)",
+              marginLeft: isUser ? 0 : "4px",
+              textAlign: isUser ? "right" : "left",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {msg.tokens} tokens
+          </p>
         )}
       </div>
     </div>
@@ -43,17 +97,31 @@ function MessageBubble({ msg }: { msg: Message }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex justify-start">
-      <div className="bg-zinc-800 rounded-2xl rounded-tl-sm px-4 py-3">
-        <div className="flex gap-1 items-center h-4">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"
-              style={{ animationDelay: `${i * 0.15}s` }}
-            />
-          ))}
-        </div>
+    <div style={{ display: "flex", justifyContent: "flex-start" }}>
+      <div
+        style={{
+          padding: "12px 16px",
+          background: "var(--surface-2)",
+          border: "1px solid var(--border)",
+          borderRadius: "16px 16px 16px 4px",
+          display: "flex",
+          gap: "5px",
+          alignItems: "center",
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="dot-pulse"
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "var(--ai)",
+              animationDelay: `${i * 0.18}s`,
+            }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -68,7 +136,6 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Carrega histórico da última conversa ao abrir
   const loadHistory = useCallback(async (convId: string) => {
     const res = await fetch(`/api/chat?conversationId=${convId}`);
     if (!res.ok) {
@@ -160,43 +227,135 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)" }}>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-base font-semibold text-zinc-100">Chat de Teste</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {conversationId
-              ? "Conversa salva — histórico preservado entre sessões"
-              : "Teste o agente sem precisar do WhatsApp"}
-          </p>
+      <div
+        style={{
+          padding: "14px 24px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+          background: "var(--surface)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <h1
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.9375rem",
+                fontWeight: 600,
+                color: "var(--text-1)",
+                lineHeight: 1.3,
+              }}
+            >
+              Chat de Teste
+            </h1>
+            <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "1px" }}>
+              {conversationId
+                ? "Conversa salva — histórico preservado entre sessões"
+                : "Teste o agente sem precisar do WhatsApp"}
+            </p>
+          </div>
         </div>
-        {messages.length > 0 && (
-          <button
-            onClick={resetChat}
-            className="text-xs text-zinc-500 hover:text-red-400 bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg transition-colors"
-          >
-            Limpar memória
-          </button>
-        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Online indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              className="status-pulse"
+              style={{
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                background: "var(--success)",
+              }}
+            />
+            <span style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>online</span>
+          </div>
+
+          {messages.length > 0 && (
+            <button
+              onClick={resetChat}
+              className="btn-ghost"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "6px 10px",
+              }}
+            >
+              <IconTrash />
+              <span>Limpar</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
         {loadingHistory ? (
-          <div className="h-full flex items-center justify-center text-zinc-600 text-sm">
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-3)",
+              fontSize: "0.875rem",
+            }}
+          >
             Carregando histórico...
           </div>
         ) : messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl mb-4">
-              🤖
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              gap: "12px",
+            }}
+          >
+            <div
+              style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "18px",
+                background: "var(--accent-dim)",
+                border: "1px solid var(--accent-border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--accent)",
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
             </div>
-            <p className="text-zinc-300 font-medium mb-1">Agente pronto para conversa</p>
-            <p className="text-sm text-zinc-500 max-w-xs">
-              Envie uma mensagem para testar. O histórico fica salvo até você clicar em{" "}
-              <span className="text-red-400">Limpar memória</span>.
-            </p>
+            <div>
+              <p style={{ color: "var(--text-1)", fontWeight: 500, fontSize: "0.9375rem" }}>
+                Agente pronto para conversar
+              </p>
+              <p style={{ color: "var(--text-3)", fontSize: "0.8125rem", marginTop: "4px", maxWidth: "280px" }}>
+                Envie uma mensagem para testar. O histórico fica salvo até você clicar em{" "}
+                <span style={{ color: "var(--error)" }}>Limpar</span>.
+              </p>
+            </div>
           </div>
         ) : (
           messages.map((msg) => <MessageBubble key={msg.id} msg={msg} />)
@@ -207,29 +366,64 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="px-6 py-4 border-t border-zinc-800 flex-shrink-0">
-        <div className="flex gap-3 items-end">
+      <div
+        style={{
+          padding: "14px 24px 18px",
+          borderTop: "1px solid var(--border)",
+          flexShrink: 0,
+          background: "var(--surface)",
+        }}
+      >
+        <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite uma mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+            placeholder="Digite uma mensagem… (Enter para enviar)"
             rows={1}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none max-h-32 overflow-y-auto"
-            style={{ minHeight: "46px" }}
+            className="field-input"
+            style={{
+              flex: 1,
+              resize: "none",
+              maxHeight: "120px",
+              overflowY: "auto",
+              minHeight: "44px",
+              lineHeight: "1.5",
+              paddingTop: "11px",
+              paddingBottom: "11px",
+            }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="flex-shrink-0 w-11 h-11 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl flex items-center justify-center transition-colors"
+            style={{
+              flexShrink: 0,
+              width: "44px",
+              height: "44px",
+              background: input.trim() && !loading ? "var(--accent)" : "var(--surface-3)",
+              border: "1px solid " + (input.trim() && !loading ? "var(--accent-border)" : "var(--border-2)"),
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: input.trim() && !loading ? "pointer" : "not-allowed",
+              color: input.trim() && !loading ? "#000" : "var(--text-3)",
+              transition: "all 0.2s ease",
+            }}
           >
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            <IconSend />
           </button>
         </div>
-        <p className="text-xs text-zinc-600 mt-2 text-center">
+        <p
+          style={{
+            fontSize: "0.6875rem",
+            color: "var(--text-3)",
+            textAlign: "center",
+            marginTop: "8px",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
           GPT-4.1-mini · Shift+Enter para quebrar linha
         </p>
       </div>
