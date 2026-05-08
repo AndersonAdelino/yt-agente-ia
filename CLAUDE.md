@@ -227,6 +227,11 @@ await db.executeMultiple(`
     "evolutionUrl" TEXT NOT NULL DEFAULT '',
     "evolutionApiKey" TEXT NOT NULL DEFAULT '',
     "instanceId" TEXT NOT NULL DEFAULT '',
+    "aiProvider" TEXT NOT NULL DEFAULT 'openai',
+    "openaiApiKey" TEXT NOT NULL DEFAULT '',
+    "openaiModel" TEXT NOT NULL DEFAULT 'gpt-4.1-mini',
+    "groqApiKey" TEXT NOT NULL DEFAULT '',
+    "groqModel" TEXT NOT NULL DEFAULT 'llama-3.3-70b-versatile',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
@@ -347,6 +352,8 @@ Suporta dois provedores com a mesma assinatura — Groq usa a API compatível co
 ```ts
 interface ProviderOptions {
   aiProvider?: string;   // "openai" | "groq"
+  openaiApiKey?: string;
+  openaiModel?: string;
   groqApiKey?: string;
   groqModel?: string;
 }
@@ -393,7 +400,7 @@ Requer autenticação.
 ### api/chat/route.ts
 Requer autenticação.
 - **GET** — lista conversas `source: "chat"` com mensagens incluídas
-- **POST** — body: `{ conversationId?: string, message: string }`; cria conversa se necessário; salva mensagem do usuário; busca histórico limitado por `historyLimit`; chama `generateResponse`; salva resposta; retorna `{ reply, tokens, conversationId }`
+- **POST** — body: `{ conversationId?: string, message: string }`; cria conversa se necessário; salva mensagem do usuário; busca histórico limitado por `historyLimit`; chama `generateResponse` passando `{ aiProvider, openaiApiKey, openaiModel, groqApiKey, groqModel }` da config; salva resposta; retorna `{ conversationId, message: { id, content, tokens, role } }`
 
 ### api/conversations/route.ts
 Requer autenticação.
@@ -424,7 +431,7 @@ Fluxo:
 8. Buscar ou criar `Conversation` (`source: "whatsapp"`, `phone`)
 9. Salvar `Message` do usuário
 10. Buscar histórico (último `historyLimit` mensagens)
-11. `generateResponse` com o histórico
+11. `generateResponse` com o histórico e `{ aiProvider, openaiApiKey, openaiModel, groqApiKey, groqModel }` da config
 12. Salvar `Message` do assistente com tokens
 13. `sendWhatsAppMessage` com credenciais da config
 14. Retornar `{ ok: true }`
@@ -432,19 +439,59 @@ Fluxo:
 ## Pages
 
 ### Design System (globals.css)
+
 ```css
 :root {
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #0f1629;
-  --bg-tertiary: #161d35;
-  --accent-amber: #F0A020;
-  --accent-cyan: #2DD4BF;
-  --text-primary: #E8EAF0;
-  --text-secondary: #8892AA;
-  --border: #1e2a45;
+  /* Backgrounds */
+  --bg: #06060E;
+  --surface: #0D0D1C;
+  --surface-2: #141428;
+  --surface-3: #1C1C38;
+
+  /* Borders */
+  --border: #1E1E36;
+  --border-2: #2C2C4A;
+  --border-3: #3E3E60;
+
+  /* Accent — warm amber */
+  --accent: #F0A020;
+  --accent-dim: rgba(240, 160, 32, 0.1);
+  --accent-border: rgba(240, 160, 32, 0.25);
+  --accent-text: #F5BA55;
+
+  /* AI — electric cyan */
+  --ai: #2DD4BF;
+  --ai-dim: rgba(45, 212, 191, 0.09);
+  --ai-border: rgba(45, 212, 191, 0.2);
+
+  /* Text */
+  --text-1: #EEEDF8;
+  --text-2: #7A7A9C;
+  --text-3: #48485E;
+
+  /* Status */
+  --error: #F87171;
+  --error-dim: rgba(248, 113, 113, 0.08);
+  --success: #4ADE80;
+  --success-dim: rgba(74, 222, 128, 0.1);
+
+  /* Font references */
+  --font-display: var(--font-syne), 'Syne', sans-serif;
+  --font-body: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --font-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;
 }
 ```
-Fontes via `next/font/google`: **Syne** (títulos), **DM Sans** (corpo), **JetBrains Mono** (código/timestamps).
+
+Classes utilitárias obrigatórias no mesmo arquivo:
+- `.field-input` — input/select/textarea padrão: `background: var(--surface-2)`, borda `var(--border)`, `border-radius: 10px`, padding `10px 14px`, focus com `border-color: var(--accent)` e `box-shadow: 0 0 0 3px var(--accent-dim)`
+- `.btn-primary` — botão preenchido: `background: var(--accent)`, `color: #000`, `font-weight: 600`, `border-radius: 10px`, hover com `opacity: 0.88`, disabled com `opacity: 0.45`
+- `.btn-ghost` — botão outline: `border: 1px solid var(--border-2)`, hover com `background: var(--surface-2)`
+- `.card` — container: `background: var(--surface)`, `border: 1px solid var(--border)`, `border-radius: 16px`
+- `.animate-fade-up` — animação `fadeUp` (opacity 0→1, translateY 10px→0)
+- `.dot-pulse` — animação dos 3 pontinhos de "digitando..."
+- `.status-pulse` — pulsação do indicador online
+
+Fontes via `next/font/google`: **Syne** (`--font-display`, títulos), **DM Sans** (`--font-body`, corpo), **JetBrains Mono** (`--font-mono`, código/timestamps).
 
 ### app/layout.tsx
 Layout raiz. Importa as 3 fontes e aplica variáveis CSS no `<body>`. Fundo `var(--bg-primary)`.
@@ -453,7 +500,12 @@ Layout raiz. Importa as 3 fontes e aplica variáveis CSS no `<body>`. Fundo `var
 Tela cheia com card centralizado. Input de senha + botão. POST para `/api/auth`. Sucesso → `router.push("/")`. Erro → exibe "Senha incorreta".
 
 ### app/(dashboard)/layout.tsx
-Sidebar fixa com links para `/` (Chat de Teste), `/conversations` (Conversas WhatsApp), `/config` (Configurações). Link ativo com `--accent-amber`. Botão "Sair" no rodapé: `DELETE /api/auth` → redirect `/login`. Verifica autenticação via `cookies()` do Next.js; redireciona para `/login` se não autenticado.
+`"use client"`. Sidebar fixa (largura 216px) com:
+- Logo/ícone no topo com `var(--accent-dim)` background
+- Links de navegação: `/` (Chat de Teste), `/config` (Configurações), `/conversations` (Conversas WA)
+- Link ativo: `background: var(--accent-dim)`, `border: 1px solid var(--accent-border)`, `color: var(--accent)`
+- Botão "Sair" no rodapé: `DELETE /api/auth` → `router.push("/login")` + `router.refresh()`; hover com `var(--error)` e `var(--error-dim)`
+- Autenticação verificada em cada page individualmente (não no layout)
 
 ### app/(dashboard)/page.tsx — Chat de Teste
 - Estado: `messages`, `conversationId` (persistido em `localStorage`), `input`, `loading`
